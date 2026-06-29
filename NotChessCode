@@ -1,0 +1,756 @@
+#_ = empty space
+#Pawn
+#Knight
+#Bishop
+#Rook
+#Queen
+#Porter
+#ELite Pawn
+#Charger
+#Bomber
+#Archer
+#Swordsman
+
+
+
+
+
+#pygame setup
+import pygame
+pygame.init()
+pieces = pygame.sprite.Group()
+pygame.display.init()
+
+#window title
+pygame.display.set_caption("Not Chess")
+
+#text initialization
+pygame.font.init()
+font = pygame.font.SysFont("Arial", 20)
+def renderText(input):
+    text_surface = font.render(str(input), True, (255, 255, 255))
+    text_rect = text_surface.get_rect()
+    text_rect.center = (512, 512)
+    return(text_surface, text_rect)
+
+
+
+
+
+#board setup class
+class Board:
+
+    def __init__ (self, boardSize, screen):
+        self.boardSize = boardSize
+        self.tile = pygame.Rect(0, 0, boardSize / 16, boardSize / 16)
+        self.screen = screen
+        self.tileSize = self.boardSize / 16
+        self.board = []
+        for i in range(16):
+            self.board.append([])
+            for j in range(16):
+                self.board[i].append("_")
+
+
+    def updateBoard (self):
+        a = True
+        for i in range(16):
+            a = not a
+            for j in range(16):
+                self.tile = pygame.Rect(i * self.tileSize, j * self.tileSize, self.tileSize, self.tileSize)
+                if a:
+                    pygame.draw.rect(self.screen, (20, 20, 20), self.tile)
+                    a = False
+                elif not a:
+                    pygame.draw.rect(self.screen, (50, 50, 50), self.tile)
+                    a = True
+
+
+    def updateMouse(self, mousePos):
+        self.select = (int(mousePos[0] // self.tileSize * self.tileSize // 64), int(mousePos[1] // self.tileSize * self.tileSize // 64))
+        highlight = pygame.Rect(mousePos[0] // self.tileSize * self.tileSize, mousePos[1] // self.tileSize * self.tileSize, boardSize / 16, boardSize / 16)
+        pygame.draw.rect(screen, (200, 0, 50), highlight, 3)
+        self.board[int(self.select[0])][int(self.select[1])]
+
+
+
+
+
+validmove = pygame.image.load("~validmove.png")
+
+
+
+
+#piece setup class with all piece subclasses
+class Piece(pygame.sprite.Sprite):
+    def __init__(self, x, y, color, image):
+        super().__init__()
+        self.coords = pygame.math.Vector2(x, y)
+        self.color = color
+        self.moves = []
+        self.movecoords = []
+        self.attacks = []
+        self.attackcoords = []
+        self.image = pygame.image.load(image).convert_alpha()
+        self.rect = self.image.get_rect()
+        self.rect.x = x
+        self.rect.y = y
+        self.pieceSurface = pygame.surface.Surface((64, 64), pygame.SRCALPHA)
+        pieces.add(self)
+
+    def getMoves(self):
+        pass
+
+    def getAttack(self):
+        pass
+
+    def updatePos(self, x, y):
+        self.x = x
+        self.y = y
+        self.rect.x = x
+        self.rect.y = y
+
+class Pawn(Piece):
+    def __init__(self, x, y, color):
+        self.x = x
+        self.y = y
+        self.color = color
+        self.value = 1
+        if color == "black":
+            image = "~blackpawn.png"
+        if color == "white":
+            image = "~whitepawn.png"
+        super().__init__(x, y, color, image)
+        
+
+    def getMoves(self):
+        self.moves.clear()
+        self.movecoords.clear()
+        if self.color == "white":
+            if not self.y < 64:
+                if board.board[self.x // 64][self.y // 64 - 1] == "_":
+                    if len(self.moves) > 0:
+                        for i in range(len(self.moves)):
+                            if not self.moves[i] == ((self.x // 64, self.y // 64 - 1)):
+                                self.moves.append((self.x // 64, self.y // 64 - 1))
+                                for i in range(len(self.moves)):
+                                    self.movecoords.append(self.x)
+                                    self.movecoords.append(self.y - 64)
+                        return self.movecoords
+                    else:
+                        self.moves.append((self.x // 64, self.y // 64 - 1))
+                        for i in range(len(self.moves)):
+                            self.movecoords.append(self.x)
+                            self.movecoords.append(self.y - 64)
+                        return self.movecoords
+                else:
+                    return self.movecoords
+            else:
+                return (("queen", self.x))
+
+
+    def getAttack(self):
+        self.attackcoords.clear()
+        self.attacks.clear()
+        if self.color == "white":
+            if self.x > 63:
+                for sprite in pieces:
+                    if sprite.x == self.x - 64:
+                        if sprite.y == self.y - 64:
+                            if sprite.color == "black":
+                                if len(self.attacks) > 0:
+                                    for i in range(len(self.attacks)):
+                                        if not self.attacks[i] == ((self.x // 64 - 1, self.y // 64 - 1)):
+                                            self.attacks.append((self.x // 64 - 1, self.y // 64 - 1))
+                                            for i in range(len(self.attacks)):
+                                                self.attackcoords.append(self.x - 64)
+                                                self.attackcoords.append(self.y - 64)
+                                else:
+                                    self.attacks.append((self.x // 64 - 1, self.y // 64 - 1))
+                                    for i in range(len(self.attacks)):
+                                        self.attackcoords.append(self.x - 64)
+                                        self.attackcoords.append(self.y - 64)
+            if self.x < 1024:
+                for sprite in pieces:
+                    if sprite.x == self.x + 64:
+                        if sprite.y == self.y - 64:
+                            if sprite.color == "black":
+                                if len(self.attacks) > 0:
+                                    for i in range(len(self.attacks)):
+                                        if not self.attacks[i] == ((self.x // 64 + 1, self.y // 64 - 1)):
+                                            self.attacks.append((self.x // 64 + 1, self.y // 64 - 1))
+                                            for i in range(len(self.attacks)):
+                                                self.attackcoords.append(self.x + 64)
+                                                self.attackcoords.append(self.y - 64)
+                                else:
+                                    self.attacks.append((self.x // 64 + 1, self.y // 64 - 1))
+                                    for i in range(len(self.attacks)):
+                                        self.attackcoords.append(self.x + 64)
+                                        self.attackcoords.append(self.y - 64)
+                return self.attackcoords
+
+
+
+
+class Bishop(Piece):
+    def __init__(self, x, y, color):
+        self.x = x
+        self.y = y
+        self.color = color
+        self.value = 3
+        if color == "black":
+            image = "~blackbishop.png"
+        if color == "white":
+            image = "~whitebishop.png"
+        super().__init__(x, y, color, image)
+
+    def getMoves(self):
+        self.moves.append
+
+    def getAttack(self):
+        self.moves.append
+
+class Knight(Piece):
+    def __init__(self, x, y, color):
+        self.x = x
+        self.y = y
+        self.color = color
+        self.value = 3
+        if color == "black":
+            image = "~blackknight.png"
+        if color == "white":
+            image = "~whiteknight.png"
+        super().__init__(x, y, color, image)
+
+    def getMoves(self):
+        self.moves.append
+
+    def getAttack(self):
+        self.moves.append
+
+class Rook(Piece):
+    def __init__(self, x, y, color):
+        self.x = x
+        self.y = y
+        self.color = color
+        self.value = 5
+        if color == "black":
+            image = "~blackrook.png"
+        if color == "white":
+            image = "~whiterook.png"
+        super().__init__(x, y, color, image)
+
+    def getMoves(self):
+        self.moves.append
+
+    def getAttack(self):
+        self.moves.append    
+
+class Queen(Piece):
+    def __init__(self, x, y, color):
+        self.x = x
+        self.y = y
+        self.color = color
+        self.value = 9
+        if color == "black":
+            image = "~blackqueen.png"
+        if color == "white":
+            image = "~whitequeen.png"
+        super().__init__(x, y, color, image)
+
+    def getMoves(self):
+        self.moves.append
+
+    def getAttack(self):
+        self.moves.append    
+
+class Porter(Piece):
+    def __init__(self, x, y, color):
+        self.x = x
+        self.y = y
+        self.color = color
+        self.value = 7
+        if color == "black":
+            image = "~blackporter.png"
+        if color == "white":
+            image = "~whiteporter.png"
+        super().__init__(x, y, color, image)
+
+    def getMoves(self):
+        self.moves.append
+
+    def getAttack(self):
+        self.moves.append       
+
+class Charger(Piece):
+    def __init__(self, x, y, color):
+        self.x = x
+        self.y = y
+        self.color = color
+        self.value = 8
+        if color == "black":
+            image = "~blackcharger.png"
+        if color == "white":
+            image = "~whitecharger.png"
+        super().__init__(x, y, color, image)
+
+    def getMoves(self):
+        self.moves.append
+
+    def getAttack(self):
+        self.moves.append      
+
+class ElitePawn(Piece):
+    def __init__(self, x, y, color):
+        self.x = x
+        self.y = y
+        self.color = color
+        self.value = 2
+        if color == "black":
+            image = "~blackelitepawn.png"
+        if color == "white":
+            image = "~whiteelitepawn.png"
+        super().__init__(x, y, color, image)
+
+    def getMoves(self):
+        self.moves.append
+
+    def getAttack(self):
+        self.moves.append      
+
+class Bomber(Piece):
+    def __init__(self, x, y, color):
+        self.x = x
+        self.y = y
+        self.color = color
+        self.value = 5
+        if color == "black":
+            image = "~blackbomber.png"
+        if color == "white":
+            image = "~whitebomber.png"
+        super().__init__(x, y, color, image)
+
+    def getMoves(self):
+        self.moves.append
+
+    def getAttack(self):
+        self.moves.append      
+    
+class Archer(Piece):
+    def __init__(self, x, y, color):
+        self.x = x
+        self.y = y
+        self.color = color
+        self.value = 3
+        if color == "black":
+            image = "~blackarcher.png"
+        if color == "white":
+            image = "~whitearcher.png"
+        super().__init__(x, y, color, image)
+
+    def getMoves(self):
+        self.moves.append
+
+    def getAttack(self):
+        self.moves.append      
+
+class Swordsman(Piece):
+    def __init__(self, x, y, color):
+        self.x = x
+        self.y = y
+        self.color = color
+        self.value = 3
+        if color == "black":
+            image = "~blackswordsman.png"
+        if color == "white":
+            image = "~whiteswordsman.png"
+        super().__init__(x, y, color, image)
+
+    def getMoves(self):
+        self.moves.append
+
+    def getAttack(self):
+        self.moves.append
+
+class King(Piece):
+    def __init__(self, x, y, color):
+        self.x = x
+        self.y = y
+        self.color = color
+        self.value = 15
+        if color == "black":
+            image = "~blackking.png"
+        if color == "white":
+            image = "~whiteking.png"
+        super().__init__(x, y, color, image)
+
+    def getMoves(self):
+        self.moves.append
+
+    def getAttack(self):
+        self.moves.append
+
+
+
+
+
+#diccionaries corresponding to each pieces class and value
+piece_classes = {"pawn":Pawn,
+                 "bishop":Bishop,
+                 "knight":Knight,
+                 "rook":Rook,
+                 "queen":Queen,
+                 "porter":Porter,
+                 "charger":Charger,
+                 "elitepawn":ElitePawn,
+                 "bomber":Bomber,
+                 "archer":Archer,
+                 "swordsman":Swordsman,
+                 "king":King}
+piece_values = {0:1,
+                1:3,
+                2:3,
+                3:5,
+                4:9,
+                5:7,
+                6:8,
+                7:2,
+                8:5,
+                9:3,
+                10:3,
+                11:15
+                }
+
+
+
+
+
+#piece call and remove funciton
+def createPiece(name, color, x, y):
+    return piece_classes[name](x, y, color)
+def removePiece():
+    return board.board[int(pygame.mouse.get_pos()[0] // board.tileSize * board.tileSize // 64)][int(pygame.mouse.get_pos()[1] // board.tileSize * board.tileSize // 64)]
+
+#function to check if placement spot is valid
+def checkTile(tile):
+    if board.board[int(tile[0])][int(tile[1])] == "_":
+        return True
+    else:
+        return False
+    
+#pawn promotion funciton
+def replaceQueen(coords, color):
+    print("hi")
+    for sprite in pieces:
+        if sprite.rect.collidepoint(coords,0) == piece_classes["pawn"]:
+            pieces.remove(sprite)
+            pieces.add(createPiece("queen", color, coords[0], 0))
+            board.board[coords[0] // 64][0] = piece_classes["queen"]
+
+#keys to access diccionaries
+selectPiece = 0
+piecesList = ["pawn", "bishop", "knight", "rook", "queen", "porter", "charger", "elitepawn", "bomber", "archer", "swordsman", "king"]
+
+
+
+
+
+#screen update setup
+clock=pygame.time.Clock()
+boardSize = 1024
+screen = pygame.display.set_mode((boardSize, boardSize))
+
+#board setup
+board = Board(boardSize, screen)
+
+
+
+
+
+
+
+#loop
+while True:
+
+    turn = "white"
+    blackpoints = 100
+    whitepoints = 100
+    blackHasKing = False
+    whiteHasKing = False
+
+
+
+
+    #white placement loop
+    while whitepoints > 0 or not whiteHasKing:
+
+        #switch turn
+        turn = "white"
+
+        #frames and screen update
+        clock.tick(30)
+        screen.fill((50, 50 , 50))
+            
+        #detect inputs
+        for event in pygame.event.get():
+
+            #cycle through selected pieces
+            if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_LEFT:
+                    if selectPiece == 0:
+                        selectPiece = 11
+                    else:
+                        selectPiece -= 1
+                if event.key == pygame.K_RIGHT:
+                    if selectPiece == 11:
+                        selectPiece = 0
+                    else:
+                        selectPiece += 1
+
+            
+
+
+            #quit function
+            if event.type == pygame.QUIT:
+                    run = False
+                    pygame.quit()
+            
+            #detect mouse inputs
+            if event.type == pygame.MOUSEBUTTONDOWN:
+                if board.select[1] > 11:
+                    mousecoords = pygame.mouse.get_pos()
+
+                    #place a piece
+                    if event.button == 1:
+                        mouseCheck = board.select
+                        if checkTile(mouseCheck) == True:
+                                if whitepoints >= piece_values[selectPiece]:
+                                    pieces.add(createPiece(piecesList[selectPiece], turn, mouseCheck[0] * 64, mouseCheck[1] * 64))
+                                    whitepoints -= piece_values[selectPiece]
+                                    board.board[mouseCheck[0]][mouseCheck[1]] = piece_classes[piecesList[selectPiece]]
+
+                    #remove a piece
+                    if event.button == 3:
+                        if checkTile(board.select) == False:
+                            for sprite in pieces:
+                                if sprite.rect.collidepoint(mousecoords):
+                                    whitepoints += sprite.value
+                                    pieces.remove(sprite)
+                            board.board[int(pygame.mouse.get_pos()[0] // board.tileSize * board.tileSize // 64)][int(pygame.mouse.get_pos()[1] // board.tileSize * board.tileSize // 64)] = "_"
+
+        whiteHasKing = False
+        for i in range(15, 11, -1):
+            for j in range(16):
+                if board.board[j][i] == King:
+                    whiteHasKing = True
+
+        ghostImage = pygame.image.load("~"+turn+piecesList[selectPiece]+".png")
+
+        if piece_values[selectPiece] < whitepoints:
+            ghostImage.set_alpha(150)
+        else:
+            ghostImage.set_alpha(50)
+
+        #print board
+        board.updateBoard()
+
+        #update mouse
+        board.updateMouse(pygame.mouse.get_pos())
+
+        #draw pieces
+        pieces.draw(screen)
+
+        
+        #render points
+        a = renderText(int(whitepoints))[0]
+        b = renderText(int(whitepoints))[1]
+        screen.blit(a, b)
+
+        screen.blit((ghostImage),(pygame.mouse.get_pos()[0]-32, pygame.mouse.get_pos()[1]-32))
+
+        #update screen
+        pygame.display.flip()
+
+
+
+
+
+    #black placement loop
+    while blackpoints > 0 or not blackHasKing:
+
+        #switch turn
+        turn = "black"
+
+        #frames and screen update
+        clock.tick(30)
+        screen.fill((50, 50 , 50))
+            
+        #detect inputs
+        for event in pygame.event.get():
+
+            #cycle through selected pieces
+            if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_LEFT:
+                    if selectPiece == 0:
+                        selectPiece = 11
+                    else:
+                        selectPiece -= 1
+                if event.key == pygame.K_RIGHT:
+                    if selectPiece == 11:
+                        selectPiece = 0
+                    else:
+                        selectPiece += 1
+
+            
+
+
+            #quit function
+            if event.type == pygame.QUIT:
+                    run = False
+                    pygame.quit()
+            
+            #detect mouse inputs
+            if event.type == pygame.MOUSEBUTTONDOWN:
+#AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA                if board.select[1] < 4:
+                    mousecoords = pygame.mouse.get_pos()
+
+                    #place a piece
+                    if event.button == 1:
+                        mouseCheck = board.select
+                        if checkTile(mouseCheck) == True:
+                                if blackpoints >= piece_values[selectPiece]:
+                                    pieces.add(createPiece(piecesList[selectPiece], turn, mouseCheck[0] * 64, mouseCheck[1] * 64))
+                                    blackpoints -= piece_values[selectPiece]
+                                    board.board[mouseCheck[0]][mouseCheck[1]] = piece_classes[piecesList[selectPiece]]
+
+                    #remove a piece
+                    if event.button == 3:
+                        if checkTile(board.select) == False:
+                            for sprite in pieces:
+                                if sprite.rect.collidepoint(mousecoords):
+                                    blackpoints += sprite.value
+                                    pieces.remove(sprite)
+                            board.board[int(pygame.mouse.get_pos()[0] // board.tileSize * board.tileSize // 64)][int(pygame.mouse.get_pos()[1] // board.tileSize * board.tileSize // 64)] = "_"
+
+        blackHasKing = False
+        for i in range(15, 11, -1):
+            for j in range(16):
+                if not board.board[j][i] == King:
+                    blackHasKing = True
+
+        ghostImage = pygame.image.load("~"+turn+piecesList[selectPiece]+".png")
+
+        if piece_values[selectPiece] < blackpoints:
+            ghostImage.set_alpha(150)
+        else:
+            ghostImage.set_alpha(50)
+
+        #print board
+        board.updateBoard()
+
+        #update mouse
+        board.updateMouse(pygame.mouse.get_pos())
+
+        #draw pieces
+        pieces.draw(screen)
+
+        
+        #render points
+        a = renderText(int(blackpoints))[0]
+        b = renderText(int(blackpoints))[1]
+        screen.blit(a, b)
+
+        screen.blit((ghostImage),(pygame.mouse.get_pos()[0]-32, pygame.mouse.get_pos()[1]-32))
+
+        #update screen
+        pygame.display.flip()
+
+
+
+
+
+    #game loop
+    turn = "white"
+    run = True
+    select = 1
+    selected = 0
+
+    while run:
+
+        if turn == "white":
+
+            #frames and screen update
+            clock.tick(30)
+            screen.fill((50, 50 , 50))
+                
+            #detect inputs
+            for event in pygame.event.get():
+
+                #quit function
+                if event.type == pygame.QUIT:
+                        run = False
+                        pygame.quit()
+
+                #click function (select piece)
+                if event.type == pygame.MOUSEBUTTONDOWN:
+                    if event.button == 1:
+                        if checkTile(board.select) == False:
+                            for sprite in pieces:
+                                if sprite.rect.collidepoint(pygame.mouse.get_pos()):
+                                    if sprite.color == "white":
+                                        select = sprite
+                                        spriteX = select.x
+                                        spriteY = select.y
+                                        pieceselect = pygame.image.load("~selectedpiece.png")
+                                        takepiece = pygame.image.load("~takepiece.png")
+                                        if len(select.getMoves()) > 0:
+                                            if not select.getMoves()[0] == "queen":
+                                                movespos = select.getMoves()
+                                                print(movespos)
+                                            elif select.getMoves()[0] == "queen":
+                                                print("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA")
+                                                replaceQueen(select.getMoves()[1], turn)
+                                            attackpos = select.getAttack()
+                                            selected = 1
+                        if checkTile(board.select) == True:
+                            if not select == 1:
+                                for i in range(0, len(movespos), 2):
+                                    moveTile = (movespos[i] // 64, movespos[i + 1] // 64)
+                                    if board.select == moveTile:
+                                        board.board[spriteX // 64][spriteY // 64] = "_"
+                                        board.board[movespos[i] // 64][movespos[i+1] // 64] = select
+                                        select.updatePos((movespos[i]), movespos[i+1])
+                                        select = 1
+                                        selected = 0
+                                    else:
+                                        select = 1
+                                        selected = 0
+
+
+                                
+
+                                        
+
+
+            #print board
+            board.updateBoard()
+
+            #update mouse
+            board.updateMouse(pygame.mouse.get_pos())
+
+            #draw pieces
+            pieces.draw(screen)
+
+            #select icon
+            if not select == 1:
+                screen.blit(pieceselect, (spriteX, spriteY))
+            if selected == 1 and not movespos == None:
+                for i in range(0, len(movespos), 2):
+                    screen.blit(validmove, (movespos[i], movespos[i+1]))
+            if selected == 1 and not attackpos == None:
+                for i in range(0, len(attackpos), 2):
+                    screen.blit(takepiece, (attackpos[i], attackpos[i+1]))                
+            
+
+            
+            pygame.display.flip()
